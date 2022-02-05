@@ -1,0 +1,10 @@
+logging:
+    log_level: DEBUG
+    log_file: null
+
+mongo:
+    host: localhost
+    port: 27017
+    db_name: bzfundsDB
+    collection: funds
+
