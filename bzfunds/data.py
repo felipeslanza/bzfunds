@@ -31,5 +31,14 @@ def get_monthly_data(date: datetime) -> Optional[pd.DataFrame]:
 
 @typechecked
 def get_history(start_dt: datetime, end_dt: datetime) -> Optional[pd.DataFrame]:
-    start_dt = ...
-    pass
+    assert start_dt < end_dt, "Invalid dates"
+
+    dates = pd.date_range(start_dt, end_dt, freq="m")
+    df_list = []
+    for date in dates:
+        df = get_monthly_data(date)
+        if df is not None:
+            df_list.append(df)
+
+    if df_list:
+        return pd.concat(hist, axis=0).sort_index()

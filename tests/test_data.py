@@ -15,7 +15,9 @@ date = pd.to_datetime(date_str)
 
 def test_assert_get_data_is_typed():
     with pytest.raises(TypeError, match=".*datetime.*"):
+        get_monthly_data(123)
         get_monthly_data(date_str)
+        get_monthly_data({})
 
 
 def test_assert_get_data_only_parses_successul_response():
@@ -32,5 +34,15 @@ def test_assert_get_data_only_parses_successul_response():
         assert get_monthly_data(date) is None
 
 
-def test_get_history():
-    pass
+def test_assert_get_history_is_typed():
+    with pytest.raises(TypeError, match=".*datetime.*"):
+        get_history(123, 456)
+        get_history(date_str, date_str)
+        get_history({}, [])
+
+
+def test_get_history_date_range():
+    d1, d2 = pd.to_datetime(["1910-1-1", "1910-3-1"])
+    d3, d4 = pd.to_datetime(["2110-1-1", "2110-3-1"])
+    assert get_history(d1, d2) is None
+    assert get_history(d3, d4) is None
