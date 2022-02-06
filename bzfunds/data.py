@@ -26,6 +26,7 @@ def get_monthly_data(date: datetime) -> Optional[pd.DataFrame]:
     except (requests.exceptions.Timeout, requests.exceptions.HTTPError) as e:
         logger.error("Service unavailable. Try again later")
     else:
+        pd.to_pickle(res, f"tests/sample_response_{url[-10:-4]}.pkl")
         return parse_data_from_response(res)
 
 

@@ -18,7 +18,7 @@ def get_url_from_date(date: datetime) -> str:
 def parse_data_from_response(res: requests.Response) -> pd.DataFrame:
     csv_buffer = StringIO(res.content.decode("utf-8"))
     df = pd.read_csv(csv_buffer, sep=";")
-    df.rename(API_COLUMNS_MAP, axis=1, errors="raise", inplace=True)
+    df.rename(API_COLUMNS_MAP, axis=1, errors="ignore", inplace=True)
     df = df.set_index("date")
     df.index = pd.to_datetime(df.index, format="%Y-%m-%d")
 
