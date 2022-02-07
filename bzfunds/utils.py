@@ -1,3 +1,10 @@
+"""
+bzfunds.utils
+~~~~~~~~~~~~~
+
+General utils used within bzfunds
+"""
+
 from datetime import datetime
 from io import StringIO
 
