@@ -3,8 +3,17 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-Welcome to bzfunds's documentation!
-===================================
+=======
+bzfunds
+=======
+
+This library provides a simple API to query, store and manipulate 
+available data for investment funds within the Brazilian investment
+industry.
+
+All data is sourced from the Brazilian regulator's (CVM) official
+website and updated daily.
+
 
 .. toctree::
    :maxdepth: 2
