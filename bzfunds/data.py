@@ -1,8 +1,9 @@
-# +++++++++++++++++++++++++++++++++++++++++++++++++++++++
-# TODO: add caching when DB is implemented
-# +++++++++++++++++++++++++++++++++++++++++++++++++++++++
-# TODO: add options to i) force query, ii) commit results
-# +++++++++++++++++++++++++++++++++++++++++++++++++++++++
+# +++++++++++++++++++++++++++++++++++++++++++++++++++
+# TODO list:
+# +++++++++++++++++++++++++++++++++++++++++++++++++++
+# - add caching when DB is implemented
+# - add options to i) force query, ii) commit results
+# +++++++++++++++++++++++++++++++++++++++++++++++++++
 
 """
 bzfunds.data
@@ -19,11 +20,13 @@ import logging
 import os
 import shutil
 from datetime import datetime
+from io import StringIO
 from tempfile import TemporaryDirectory
 from typing import Optional
 
 import pandas as pd
 import requests
+from joblib import Parallel, delayed
 from typeguard import typechecked
 
 from .constants import API_FIRST_VALID_DATE, API_LAST_ZIPPED_DATE
@@ -51,8 +54,8 @@ def _handle_csv_request(date: datetime) -> Optional[pd.DataFrame]:
         logger.error("Service unavailable. Try again later")
     else:
         # pd.to_pickle(response, f"tests/sample_responseponse_{url[-10:-4]}.pkl")
-        if res is not None:
-            csv_buffer = StringIO(res.content.decode("utf-8"))
+        if response is not None:
+            csv_buffer = StringIO(response.content.decode("utf-8"))
             return parse_csv(csv_buffer)
 
 
@@ -103,10 +106,10 @@ def get_monthly_data(
         # Don't bother
         return
     elif date > API_LAST_ZIPPED_DATE:
-        # More recent dates (directly thru single-month `csv` file)
+        # New-format dates, i.e. directly thru single-month `csv` file
         return _handle_csv_request(date)
     else:
-        # Older dates (zipped file with whole-year data)
+        # Old-format dates, i.e. zipped file with whole-year data
         df = _handle_zip_request(date)
         if df is not None:
             if full_year:
@@ -115,16 +118,26 @@ def get_monthly_data(
 
 
 @typechecked
-def get_history(start_dt: datetime, end_dt: datetime) -> Optional[pd.DataFrame]:
-    """Get all monthly data available from :start_dt: to :end_dt:"""
+def get_history(
+    start_dt: datetime,
+    end_dt: datetime,
+    n_jobs: int = -1,
+) -> Optional[pd.DataFrame]:
+    """Get all monthly data available from `start_dt` to `end_dt`
+
+    ...
+
+    Parameters
+    ----------
+    start_dt : datetime
+    end_dt : datetime
+    n_jobs : int
+        # of jobs forwarded to `joblib.Parallel` call
+    """
     assert start_dt < end_dt, "Invalid dates"
 
     dates = pd.date_range(start_dt, end_dt, freq="m")
-    df_list = []
-    for date in dates:
-        df = get_monthly_data(date)
-        if df is not None:
-            df_list.append(df)
-
+    queue = Parallel(n_jobs=n_jobs)(delayed(get_monthly_data)(date) for date in dates)
+    df_list = [df for df in queue if df is not None]
     if df_list:
-        return pd.concat(hist, axis=0).sort_index()
+        return pd.concat(df_list, axis=0).sort_index()

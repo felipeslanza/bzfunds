@@ -6,7 +6,6 @@ General utils used within bzfunds
 """
 
 from datetime import datetime
-from io import StringIO
 from typing import Union, TextIO
 
 import pandas as pd
