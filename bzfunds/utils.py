@@ -25,6 +25,8 @@ def get_url_from_date(date: datetime, zipped: bool = False) -> str:
     before the cutoff date require downloading a zipped file for the
     whole year.
 
+    ...
+
     Parameters
     ----------
     date : datetime
@@ -35,7 +37,7 @@ def get_url_from_date(date: datetime, zipped: bool = False) -> str:
         # Zipped folder with all monthly CSV files for that year
         url = f"{constants.API_ENDPOINT}/HIST/{constants.API_FILENAME_PREFIX}{date.year}.zip"
     else:
-        # Monthly CSV file
+        # Monthly `csv` file
         url = f"{constants.API_ENDPOINT}/{constants.API_FILENAME_PREFIX}{date_str}.csv"
 
     return url
