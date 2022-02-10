@@ -1,3 +1,9 @@
+# +++++++++++++++++++++++++++++++++++++++++++++++++++++++
+# TODO: add caching when DB is implemented
+# +++++++++++++++++++++++++++++++++++++++++++++++++++++++
+# TODO: add options to i) force query, ii) commit results
+# +++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
 """
 bzfunds.data
 ~~~~~~~~~~~~~
@@ -8,15 +14,20 @@ daily funds database_.
 .. _database: http://dados.cvm.gov.br/dataset/fi-doc-inf_diario
 """
 
+import glob
 import logging
+import os
+import shutil
 from datetime import datetime
+from tempfile import TemporaryDirectory
 from typing import Optional
 
 import pandas as pd
 import requests
 from typeguard import typechecked
 
-from .utils import get_url_from_date, parse_data_from_response
+from .constants import API_FIRST_VALID_DATE, API_LAST_ZIPPED_DATE
+from .utils import get_url_from_date, parse_csv
 
 
 __all__ = ("get_monthly_data", "get_history")
@@ -25,27 +36,82 @@ __all__ = ("get_monthly_data", "get_history")
 logger = logging.getLogger(__name__)
 
 
-# +++++++++++++++++++++++++++++++++++++++++++++++++++++++
-# TODO: add caching when DB is implemented
-# +++++++++++++++++++++++++++++++++++++++++++++++++++++++
-# TODO: add options to i) force query, ii) commit results
-# +++++++++++++++++++++++++++++++++++++++++++++++++++++++
-
-
+# Private Helpers
+# ----
 @typechecked
-def get_monthly_data(date: datetime) -> Optional[pd.DataFrame]:
-    """Get data for a single month."""
-    url = get_url_from_date(date)
+def _handle_csv_request(date: datetime) -> Optional[pd.DataFrame]:
+    """Takes a `date`, requests a monthly `csv` file and return a parsed `DataFrame`"""
+    url = get_url_from_date(date, zipped=False)
     try:
-        res = requests.get(url)
-        res.raise_for_status()
+        response = requests.get(url)
+        response.raise_for_status()
     except requests.exceptions.ConnectionError as e:
         logger.error("Connection error")
     except (requests.exceptions.Timeout, requests.exceptions.HTTPError) as e:
         logger.error("Service unavailable. Try again later")
     else:
-        # pd.to_pickle(res, f"tests/sample_response_{url[-10:-4]}.pkl")
-        return parse_data_from_response(res)
+        # pd.to_pickle(response, f"tests/sample_responseponse_{url[-10:-4]}.pkl")
+        if res is not None:
+            csv_buffer = StringIO(res.content.decode("utf-8"))
+            return parse_csv(csv_buffer)
+
+
+@typechecked
+def _handle_zip_request(date: datetime) -> Optional[pd.DataFrame]:
+    """Takes a `date`, requests an annual `zip` file, unzips it, and return a
+    parsed `DataFrame (with annual data)`
+    """
+    url = get_url_from_date(date, zipped=True)
+    with TemporaryDirectory() as temp_dir:
+        filepath = os.path.join(temp_dir, "temp.zip")
+
+        # 1. Download bulk/zipped file
+        with requests.get(url, stream=True) as res:
+            with open(filepath, "wb") as fp:
+                shutil.copyfileobj(res.raw, fp)
+
+        # 2. Unzip and parse monthly files
+        try:
+            shutil.unpack_archive(filepath, temp_dir)
+        except FileNotFoundError:
+            logger.error("Failed to download bulk file")
+        else:
+            df_list = [parse_csv(p) for p in glob.glob(f"{temp_dir}/*.csv")]
+            if df_list:
+                return pd.concat(df_list, axis=0).sort_index()
+
+
+# Public Functions
+# ----
+@typechecked
+def get_monthly_data(
+    date: datetime,
+    full_year: bool = False,
+) -> Optional[pd.DataFrame]:
+    """Get data for a single month.
+
+    ...
+
+    Parameters
+    ----------
+    date : datetime
+    full_year : bool
+        if True and `date < API_LAST_ZIPPED_DATE`, will return data for the whole year
+    """
+
+    if date < API_FIRST_VALID_DATE:
+        # Don't bother
+        return
+    elif date > API_LAST_ZIPPED_DATE:
+        # More recent dates (directly thru single-month `csv` file)
+        return _handle_csv_request(date)
+    else:
+        # Older dates (zipped file with whole-year data)
+        df = _handle_zip_request(date)
+        if df is not None:
+            if full_year:
+                return df
+            return df.loc[df.index.month == date.month]
 
 
 @typechecked
