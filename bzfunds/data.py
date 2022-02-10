@@ -39,6 +39,12 @@ __all__ = ("get_monthly_data", "get_history")
 logger = logging.getLogger(__name__)
 
 
+# Constants
+# ----
+FILENAME = "temp.zip"
+TOMORROW = datetime.today() + pd.Timedelta("1d")
+
+
 # Private Helpers
 # ----
 @typechecked
@@ -66,12 +72,18 @@ def _handle_zip_request(date: datetime) -> Optional[pd.DataFrame]:
     """
     url = get_url_from_date(date, zipped=True)
     with TemporaryDirectory() as temp_dir:
-        filepath = os.path.join(temp_dir, "temp.zip")
+        filepath = os.path.join(temp_dir, FILENAME)
 
         # 1. Download bulk/zipped file
-        with requests.get(url, stream=True) as res:
-            with open(filepath, "wb") as fp:
-                shutil.copyfileobj(res.raw, fp)
+        try:
+            with requests.get(url, stream=True) as res:
+                res.raise_for_status()
+                with open(filepath, "wb") as fp:
+                    shutil.copyfileobj(res.raw, fp)
+        except requests.exceptions.ConnectionError as e:
+            logger.error("Connection error")
+        except (requests.exceptions.Timeout, requests.exceptions.HTTPError) as e:
+            logger.error("Service unavailable. Try again later")
 
         # 2. Unzip and parse monthly files
         try:
@@ -102,7 +114,7 @@ def get_monthly_data(
         if True and `date < API_LAST_ZIPPED_DATE`, will return data for the whole year
     """
 
-    if date < API_FIRST_VALID_DATE:
+    if (date < API_FIRST_VALID_DATE) or (date >= TOMORROW):
         # Don't bother
         return
     elif date > API_LAST_ZIPPED_DATE:

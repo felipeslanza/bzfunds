@@ -4,6 +4,7 @@ from unittest.mock import Mock, patch
 
 import requests
 
+from bzfunds import constants
 from bzfunds.data import *
 from bzfunds.utils import get_url_from_date
 
