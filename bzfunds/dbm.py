@@ -8,8 +8,9 @@ Database manager to persist data requests.
 import logging
 from typing import Optional
 
+import pandas as pd
+import pymongo
 from pymongo import MongoClient
-from pymongo.errors import ServerSelectionTimeoutError
 
 
 __all__ = ("Manager",)
@@ -45,9 +46,9 @@ class Manager:
         self.password = password
         self.client_settings = {**DEFAULT_CLIENT_SETTINGS, **client_settings}
 
-        self.connect()
+        self.setup()
 
-    def connect(self):
+    def setup(self):
         try:
             self.client = MongoClient(
                 host=self.host,
@@ -56,8 +57,22 @@ class Manager:
                 password=self.password,
                 **self.client_settings,
             )
-        except ServerSelectionTimeoutError as e:
-            logger.error(f"Failed to connect to database - {e}")
+        except pymongo.errors.ServerSelectionTimeoutError as e:
+            logger.error(f"Failed to setup to database - {e}")
         else:
             self.db = self.client[self.db]
             self.collection = self.db[self.collection]
+            self.collection.create_index(
+                [
+                    ("date", pymongo.ASCENDING),
+                    ("fund_cnpj", pymongo.ASCENDING),
+                ],
+                unique=True,
+            )
+
+    def write_df(self, df: pd.DataFrame):
+        try:
+            self.collection.insert_many(df.to_dict(orient="records"), ordered=False)
+        except pymongo.errors.BulkWriteError as e:
+            for err_obj in e.details["writeErrors"]:
+                logger.error(err_obj["errmsg"])
