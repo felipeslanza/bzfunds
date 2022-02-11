@@ -4,3 +4,4 @@ pymongo==4.0.1
 pytest==7.0.0
 requests==2.27.1
 Sphinx==4.4.0
+typeguard==2.13.3
