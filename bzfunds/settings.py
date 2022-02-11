@@ -16,16 +16,17 @@ __all__ = ("LOGGING_LEVEL", "MONGODB")
 
 # General
 # ----
-LOGGING_LEVEL = os.enrivon.get("LOGGING_LEVEL", "debug")
+LOGGING_LEVEL = os.environ.get("LOGGING_LEVEL", "debug")
 
 
 # MongoDB
 # ----
 MONGODB = {
+    # "host": "cluster0.18fme.mongodb.net",
     "host": "localhost",
     "port": 27017,
     "db": "bzfundsDB",
     "collection": "funds",
-    "username": os.enrivon.get("MONGODB_USERNAME"),
-    "password": os.enrivon.get("MONGODB_PASSWORD"),
+    "username": os.environ.get("MONGODB_USERNAME"),
+    "password": os.environ.get("MONGODB_PASSWORD"),
 }

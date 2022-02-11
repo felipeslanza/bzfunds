@@ -37,10 +37,12 @@ class Manager:
         password: Optional[str] = None,
         **client_settings,
     ):
-        self.host = host
+        self.host = host if "localhost" in host else f"mongodb+srv://{host}"
         self.port = port
         self.db = db
         self.collection = collection
+        self.username = username
+        self.password = password
         self.client_settings = {**DEFAULT_CLIENT_SETTINGS, **client_settings}
 
         self.connect()
@@ -48,14 +50,14 @@ class Manager:
     def connect(self):
         try:
             self.client = MongoClient(
-                host=host,
-                port=port,
-                username=username,
-                password=password,
+                host=self.host,
+                port=self.port,
+                username=self.username,
+                password=self.password,
                 **self.client_settings,
             )
         except ServerSelectionTimeoutError as e:
             logger.error(f"Failed to connect to database - {e}")
         else:
-            self.db = self.client[db]
-            self.collection = self.db[collection]
+            self.db = self.client[self.db]
+            self.collection = self.db[self.collection]
