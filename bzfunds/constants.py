@@ -27,6 +27,8 @@ API_LAST_ZIPPED_DATE = pd.to_datetime("2016-12-31")
 
 API_FIRST_VALID_DATE = pd.to_datetime("2005-01-01")
 
+# Database is set up using ("date" and "fund_cnpj") as a unique index. Careful
+# renaming any columns, particularly these two.
 API_COLUMNS_MAP = {
     "TP_FUNDO": "fund_type",
     "CNPJ_FUNDO": "fund_cnpj",

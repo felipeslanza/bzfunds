@@ -70,9 +70,9 @@ class Manager:
                 unique=True,
             )
 
-    def write_df(self, df: pd.DataFrame):
+    def write_df(self, df: pd.DataFrame, orient: str = "records"):
         try:
-            self.collection.insert_many(df.to_dict(orient="records"), ordered=False)
+            self.collection.insert_many(df.to_dict(orient=orient), ordered=False)
         except pymongo.errors.BulkWriteError as e:
             for err_obj in e.details["writeErrors"]:
                 logger.error(err_obj["errmsg"])

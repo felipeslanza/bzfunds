@@ -109,8 +109,8 @@ def get_monthly_data(
 
     Parameters
     ----------
-    date : datetime
-    full_year : bool
+    date : `datetime`
+    full_year : `bool`
         if True and `date < API_LAST_ZIPPED_DATE`, will return data for the whole year
     """
 
@@ -141,13 +141,19 @@ def get_history(
 
     Parameters
     ----------
-    start_dt : datetime
-    end_dt : datetime
-    n_jobs : int
+    start_dt : `datetime`
+    end_dt : `datetime`
+    n_jobs : `int`
         # of jobs forwarded to `joblib.Parallel` call
     """
-    assert start_dt < end_dt, "Invalid dates"
+    if start_dt >= end_dt:
+        raise ValueError("`start_dt` must be < `end_dt`")
 
+    # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+    # TODO: range not getting right bound
+    # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+    # TODO: handle old-format requests (query whole-year only once)
+    # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
     dates = pd.date_range(start_dt, end_dt, freq="m")
     queue = Parallel(n_jobs=n_jobs)(delayed(get_monthly_data)(date) for date in dates)
     df_list = [df for df in queue if df is not None]
