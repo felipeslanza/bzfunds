@@ -149,13 +149,21 @@ def get_history(
     if start_dt >= end_dt:
         raise ValueError("`start_dt` must be < `end_dt`")
 
-    # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-    # TODO: range not getting right bound
-    # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-    # TODO: handle old-format requests (query whole-year only once)
-    # +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-    dates = pd.date_range(start_dt, end_dt, freq="m")
-    queue = Parallel(n_jobs=n_jobs)(delayed(get_monthly_data)(date) for date in dates)
-    df_list = [df for df in queue if df is not None]
+    dates = pd.period_range(start_dt, end_dt, freq="m").to_timestamp().to_series()
+
+    # Redundant to get one month at a time with old-format (already parses whole year)
+    pre_dates = dates.loc[:API_LAST_ZIPPED_DATE].resample("y").last().index
+    if pre_dates.size:
+        assert end_dt >= pre_dates[-1], "`end_dt >= API_LAST_ZIPPED_DATE`"
+    pre_queue = Parallel(n_jobs=n_jobs)(
+        delayed(get_monthly_data)(date, full_year=True) for date in pre_dates
+    )
+
+    post_dates = dates.loc[API_LAST_ZIPPED_DATE:].index
+    post_queue = Parallel(n_jobs=n_jobs)(
+        delayed(get_monthly_data)(date, full_year=False) for date in post_dates
+    )
+
+    df_list = [df for df in (*pre_queue, *post_queue) if df is not None]
     if df_list:
         return pd.concat(df_list, axis=0).sort_index()

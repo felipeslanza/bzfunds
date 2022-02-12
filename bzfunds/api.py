@@ -7,6 +7,7 @@ funds' data.
 """
 
 import logging
+import sys
 from datetime import datetime
 from typing import Optional, Union
 
@@ -23,6 +24,11 @@ from .dbm import Manager
 __all__ = ("download_data", "get_data")
 
 
+logging.basicConfig(
+    stream=sys.stdout,
+    level=settings.LOGGING_LEVEL,
+    format=settings.LOGGING_FORMAT,
+)
 logger = logging.getLogger(__name__)
 
 
@@ -44,17 +50,15 @@ def download_data(update_only: bool = True, manager: Manager = DEFAULT_DB_MANAGE
         query date (this is not a `diff` against the database!)
     """
     last_db_date = API_FIRST_VALID_DATE
-    end_dt = datetime.today().date()
     if update_only:
         cursor = manager.collection.find().limit(1).sort("date", pymongo.DESCENDING)
         try:
             last_db_date = cursor[0]["date"]
         except (IndexError, KeyError):
-            logger.warning("No previous data found. Querying whole history")
-        # last_db_date = pd.to_datetime("2021-12-01")
+            logger.warning("No previous data found. Querying all available history.")
 
     try:
-        df = get_history(start_dt=last_db_date, end_dt=end_dt)
+        df = get_history(start_dt=last_db_date, end_dt=datetime.today())
     except ValueError as e:
         logger.error(e)
     else:
