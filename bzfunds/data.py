@@ -45,8 +45,6 @@ FILENAME = "temp.zip"
 TOMORROW = datetime.today() + pd.Timedelta("1d")
 
 
-# Private Helpers
-# ----
 @typechecked
 def _handle_csv_request(date: datetime) -> Optional[pd.DataFrame]:
     """Takes a `date`, requests a monthly `csv` file and return a parsed `DataFrame`"""
@@ -96,8 +94,6 @@ def _handle_zip_request(date: datetime) -> Optional[pd.DataFrame]:
                 return pd.concat(df_list, axis=0).sort_index()
 
 
-# Public Functions
-# ----
 @typechecked
 def get_monthly_data(
     date: datetime,
@@ -111,7 +107,7 @@ def get_monthly_data(
     ----------
     date : `datetime`
     full_year : `bool`
-        if True and `date < API_LAST_ZIPPED_DATE`, will return data for the whole year
+        if `True` and `date < API_LAST_ZIPPED_DATE`, will return data for the whole year
     """
 
     if (date < API_FIRST_VALID_DATE) or (date >= TOMORROW):
@@ -153,8 +149,6 @@ def get_history(
 
     # Redundant to get one month at a time with old-format (already parses whole year)
     pre_dates = dates.loc[:API_LAST_ZIPPED_DATE].resample("y").last().index
-    if pre_dates.size:
-        assert end_dt >= pre_dates[-1], "`end_dt >= API_LAST_ZIPPED_DATE`"
     pre_queue = Parallel(n_jobs=n_jobs)(
         delayed(get_monthly_data)(date, full_year=True) for date in pre_dates
     )
@@ -166,4 +160,11 @@ def get_history(
 
     df_list = [df for df in (*pre_queue, *post_queue) if df is not None]
     if df_list:
-        return pd.concat(df_list, axis=0).sort_index()
+        df = pd.concat(df_list, axis=0).sort_index()
+
+        # Must re-`loc` to ensure non-annual `start_dt` or `end_dt` are respected
+        # when querying old-format dates
+        start_month = start_dt.strftime("%Y-%M")
+        end_month = end_dt.strftime("%Y-%M")
+
+        return df.loc[start_month:end_month]

@@ -38,25 +38,39 @@ class Manager:
         password: Optional[str] = None,
         **client_settings,
     ):
-        self.host = host if "localhost" in host else f"mongodb+srv://{host}"
+        self.host = self.parse_host(host)
         self.port = port
         self.db = db
         self.collection = collection
         self.username = username
         self.password = password
-        self.client_settings = {**DEFAULT_CLIENT_SETTINGS, **client_settings}
+
+        self.client_settings = {
+            **DEFAULT_CLIENT_SETTINGS,
+            "host": self.host,
+            "port": self.port,
+            "username": self.username,
+            "password": self.password,
+            **client_settings,
+        }
 
         self.setup()
 
+    @staticmethod
+    def parse_host(host: str) -> str:
+        if len(host.split("//")) > 1:
+            # Assumes prefix is present
+            return host
+        elif host.endswith("mongodb.net"):
+            # Single host resolving to multiple hosts (e.g. Atlas)
+            return f"mongodb+srv://{host}"
+        else:
+            # Single host
+            return f"mongodb://{host}"
+
     def setup(self):
         try:
-            self.client = MongoClient(
-                host=self.host,
-                port=self.port,
-                username=self.username,
-                password=self.password,
-                **self.client_settings,
-            )
+            self.client = MongoClient(**self.client_settings)
         except pymongo.errors.ServerSelectionTimeoutError as e:
             logger.error(f"Failed to setup to database - {e}")
         else:
