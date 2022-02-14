@@ -44,7 +44,10 @@ def download_data(
     update_only: bool = True,
     manager: Manager = DEFAULT_DB_MANAGER,
 ):
-    """Download available data and insert it into the configured database.
+    """Download available data and insert it into the database.
+
+    Must provide *either* a `start_year` or set `update_only=True`. Providing
+    both at the same time will raise `ValueError`.
 
     ...
 
@@ -58,7 +61,10 @@ def download_data(
     manager : Manager
         loaded instance of database manager
     """
-    assert start_year or update_only, "Must provide a `start_year` or `update_only` flag"
+    if not (start_year or update_only):
+        raise ValueError("Must provide a `start_year` or `update_only` flag")
+    elif start_year and update_only:
+        raise ValueError("Conflicting arguments")
 
     if update_only:
         cursor = manager.collection.find().limit(1).sort("date", pymongo.DESCENDING)
@@ -90,7 +96,7 @@ def get_data(
     end_dt: Optional[Union[str, datetime]] = None,
     manager: Manager = DEFAULT_DB_MANAGER,
 ) -> Optional[pd.DataFrame]:
-    """Easily query the configured database.
+    """Easily query the database.
 
     ...
 

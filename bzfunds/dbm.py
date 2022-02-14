@@ -19,6 +19,8 @@ __all__ = ("Manager",)
 logger = logging.getLogger(__name__)
 
 
+# Globals
+# ----
 DEFAULT_CLIENT_SETTINGS = {
     "connectTimeoutMS": 2500,
     "serverSelectionTimeoutMS": 2500,

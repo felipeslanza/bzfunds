@@ -19,14 +19,14 @@ manager = Manager()
 get_history = partial(get_history, manager=manager, commit=False)
 
 
-def test_assert_get_data_is_typed():
+def test_get_monthly_data_is_typed():
     with pytest.raises(TypeError, match=".*datetime.*"):
         get_monthly_data(123)
         get_monthly_data(date_str)
         get_monthly_data({})
 
 
-def test_assert_get_data_only_parses_successul_response():
+def test_get_monthly_data_only_parses_successul_response():
     errors = (
         requests.exceptions.ConnectionError,
         requests.exceptions.Timeout,
@@ -40,7 +40,7 @@ def test_assert_get_data_only_parses_successul_response():
         assert get_monthly_data(date) is None
 
 
-def test_assert_get_history_is_typed():
+def test_get_history_is_typed():
     with pytest.raises(TypeError, match=".*datetime.*"):
         get_history(123, 456)
         get_history(date_str, date_str)
