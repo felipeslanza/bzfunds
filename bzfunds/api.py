@@ -58,12 +58,15 @@ def download_data(update_only: bool = True, manager: Manager = DEFAULT_DB_MANAGE
             logger.warning("No previous data found. Querying all available history.")
 
     try:
-        df = get_history(start_dt=last_db_date, end_dt=datetime.today())
+        _ = get_history(
+            # start_dt=pd.to_datetime("2021-12-1"),
+            start_dt=last_db_date,
+            end_dt=datetime.today(),
+            commit=True,
+            manager=manager,
+        )
     except ValueError as e:
         logger.error(e)
-    else:
-        if df.size:
-            manager.write_df(df.reset_index())  # `date` must be a column
 
 
 @typechecked

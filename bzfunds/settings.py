@@ -18,7 +18,7 @@ __all__ = ("LOGGING_LEVEL", "LOGGING_FORMAT", "MONGODB")
 # General
 # ----
 LOGGING_LEVEL = os.environ.get("LOGGING_LEVEL", "INFO")
-LOGGING_FORMAT = "%(levelname)s - bzfunds.%(module)s - %(funcName)s - %(message)s"
+LOGGING_FORMAT = "%(levelname)s - bzfunds.%(module)s.%(funcName)s - %(message)s"
 
 
 # MongoDB

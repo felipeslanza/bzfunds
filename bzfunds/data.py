@@ -30,6 +30,7 @@ from joblib import Parallel, delayed
 from typeguard import typechecked
 
 from .constants import API_FIRST_VALID_DATE, API_LAST_ZIPPED_DATE
+from .dbm import Manager
 from .utils import get_url_from_date, parse_csv
 
 
@@ -97,7 +98,10 @@ def _handle_zip_request(date: datetime) -> Optional[pd.DataFrame]:
 @typechecked
 def get_monthly_data(
     date: datetime,
+    *,
     full_year: bool = False,
+    commit: bool = True,
+    manager: Optional[Manager] = None,
 ) -> Optional[pd.DataFrame]:
     """Get data for a single month.
 
@@ -108,27 +112,38 @@ def get_monthly_data(
     date : `datetime`
     full_year : `bool`
         if `True` and `date < API_LAST_ZIPPED_DATE`, will return data for the whole year
+    commit : `bool`
+        if True, will write data to provided `manager` and return `None`
     """
-
     if (date < API_FIRST_VALID_DATE) or (date >= TOMORROW):
         # Don't bother
         return
-    elif date > API_LAST_ZIPPED_DATE:
+
+    if date > API_LAST_ZIPPED_DATE:
         # New-format dates, i.e. directly thru single-month `csv` file
-        return _handle_csv_request(date)
+        df = _handle_csv_request(date)
     else:
         # Old-format dates, i.e. zipped file with whole-year data
         df = _handle_zip_request(date)
         if df is not None:
-            if full_year:
-                return df
-            return df.loc[df.index.month == date.month]
+            if not full_year:
+                df = df.loc[df.index.month == date.month]
+
+    if df is not None and not df.empty:
+        if commit:
+            assert manager is not None, "Requires a `manager` to `commit`"
+            manager.write_df(df.reset_index())  # `date` must be a column
+        else:
+            return df
 
 
 @typechecked
 def get_history(
     start_dt: datetime,
     end_dt: datetime,
+    *,
+    commit: bool = True,
+    manager: Optional[Manager] = None,
     n_jobs: int = -1,
 ) -> Optional[pd.DataFrame]:
     """Get all monthly data available from `start_dt` to `end_dt`
@@ -139,32 +154,43 @@ def get_history(
     ----------
     start_dt : `datetime`
     end_dt : `datetime`
+    manager : `Manager`
+    commit : bool
+        if True, will write data to provided `manager`
     n_jobs : `int`
         # of jobs forwarded to `joblib.Parallel` call
     """
     if start_dt >= end_dt:
         raise ValueError("`start_dt` must be < `end_dt`")
+    elif end_dt < API_LAST_ZIPPED_DATE and end_dt.month != 12:
+        raise ValueError("`end_dt` must be be annual when querying old dates")
+
+    if not commit:
+        logger.warning("Running without committing might require a lot of memory!")
 
     dates = pd.period_range(start_dt, end_dt, freq="m").to_timestamp().to_series()
 
     # Redundant to get one month at a time with old-format (already parses whole year)
     pre_dates = dates.loc[:API_LAST_ZIPPED_DATE].resample("y").last().index
-    pre_queue = Parallel(n_jobs=n_jobs)(
-        delayed(get_monthly_data)(date, full_year=True) for date in pre_dates
+    pre_queue = Parallel(n_jobs=n_jobs, backend="threading")(
+        delayed(get_monthly_data)(date, full_year=True, commit=commit, manager=manager)
+        for date in pre_dates
     )
 
     post_dates = dates.loc[API_LAST_ZIPPED_DATE:].index
-    post_queue = Parallel(n_jobs=n_jobs)(
-        delayed(get_monthly_data)(date, full_year=False) for date in post_dates
+    post_queue = Parallel(n_jobs=n_jobs, backend="threading")(
+        delayed(get_monthly_data)(date, full_year=False, commit=commit, manager=manager)
+        for date in post_dates
     )
 
+    # List should be empty when `commit=True`
     df_list = [df for df in (*pre_queue, *post_queue) if df is not None]
     if df_list:
         df = pd.concat(df_list, axis=0).sort_index()
 
         # Must re-`loc` to ensure non-annual `start_dt` or `end_dt` are respected
         # when querying old-format dates
-        start_month = start_dt.strftime("%Y-%M")
-        end_month = end_dt.strftime("%Y-%M")
+        start_month = start_dt.strftime("%Y-%m")
+        end_month = end_dt.strftime("%Y-%m")
 
         return df.loc[start_month:end_month]
