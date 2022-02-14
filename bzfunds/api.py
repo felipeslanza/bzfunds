@@ -53,7 +53,7 @@ def download_data(
 
     Parameters
     ----------
-    start_year : str or float
+    start_year : `str` or `float`
         starting year to query data. If not provided, defaults to last 5 years
     update_only : `bool`
         if True, will use the last available date in `manager` as the starting

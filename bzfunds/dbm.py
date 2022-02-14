@@ -10,7 +10,6 @@ from typing import Optional
 
 import pandas as pd
 import pymongo
-from pymongo import MongoClient
 
 
 __all__ = ("Manager",)
@@ -60,6 +59,7 @@ class Manager:
 
     @staticmethod
     def parse_host(host: str) -> str:
+        """Simple util to infer correct schema from user-provided `host`"""
         if len(host.split("//")) > 1:
             # Prefix is present
             return host
@@ -71,15 +71,20 @@ class Manager:
             return f"mongodb://{host}"
 
     def setup(self):
+        """Connect to the server and setup collection indexes"""
         try:
-            self.client = MongoClient(**self.client_settings)
+            self.client = pymongo.MongoClient(**self.client_settings)
         except pymongo.errors.ServerSelectionTimeoutError as e:
             logger.error(f"Failed to setup to database - {e}")
         else:
             self.db = self.client[self.db]
             self.collection = self.db[self.collection]
+
+            # Required to speed up query
             self.collection.create_index("date")
             self.collection.create_index("fund_cnpj")
+
+            # Required to ensure uniqueness on (date, cnpj) pair
             self.collection.create_index(
                 [
                     ("date", pymongo.DESCENDING),
@@ -88,9 +93,20 @@ class Manager:
                 unique=True,
             )
 
-    def write_df(self, df: pd.DataFrame, orient: str = "records"):
+    def write_df(self, df: pd.DataFrame):
+        """Write a `DataFrame` retrieved from `get_monthly_data` into the database
+
+        ...
+
+        Parameters
+        ----------
+        df : pd.DataFrame
+        """
+        assert df.size, "Empty `DataFrame`"
+        assert "date" in df.columns, "Must `reset_index()` before writing"
+
         try:
-            self.collection.insert_many(df.to_dict(orient=orient), ordered=False)
+            self.collection.insert_many(df.to_dict(orient="records"), ordered=False)
         except pymongo.errors.BulkWriteError as e:
             for err_obj in e.details["writeErrors"]:
                 logger.error(err_obj["errmsg"])

@@ -1,8 +1,7 @@
 # +++++++++++++++++++++++++++++++++++++++++++++++++++
 # TODO list:
 # +++++++++++++++++++++++++++++++++++++++++++++++++++
-# - add caching when DB is implemented
-# - add options to i) force query, ii) commit results
+# - consider querying local db first
 # +++++++++++++++++++++++++++++++++++++++++++++++++++
 
 """
@@ -40,7 +39,7 @@ __all__ = ("get_monthly_data", "get_history")
 logger = logging.getLogger(__name__)
 
 
-# Constants
+# Globals
 # ----
 FILENAME = "temp.zip"
 TOMORROW = datetime.today() + pd.Timedelta("1d")
