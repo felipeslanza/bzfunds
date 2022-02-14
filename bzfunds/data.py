@@ -144,7 +144,7 @@ def get_history(
     *,
     commit: bool = True,
     manager: Optional[Manager] = None,
-    n_jobs: int = -1,
+    n_jobs: int = -2,
 ) -> Optional[pd.DataFrame]:
     """Get all monthly data available from `start_dt` to `end_dt`
 
@@ -158,7 +158,8 @@ def get_history(
     commit : bool
         if True, will write data to provided `manager`
     n_jobs : `int`
-        # of jobs forwarded to `joblib.Parallel` call
+        # of jobs forwarded to `joblib.Parallel` call. Defaults to
+        all CPUs but one.
     """
     if start_dt >= end_dt:
         raise ValueError("`start_dt` must be < `end_dt`")
