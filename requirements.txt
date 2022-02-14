@@ -1,8 +1,11 @@
 dnspython==2.2.0
 joblib==1.1.0
+myst-parser==0.17.0
 pandas==1.4.0
 pymongo==4.0.1
 pytest==7.0.0
 requests==2.27.1
 Sphinx==4.4.0
+sphinx-rtd-theme==1.0.0
+sphinxcontrib-napoleon==0.7
 typeguard==2.13.3
