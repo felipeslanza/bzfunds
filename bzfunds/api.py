@@ -85,7 +85,9 @@ def download_data(
 
 @typechecked
 def get_data(
-    funds: Optional[Union[str, list]],
+    funds: Optional[Union[str, list]] = None,
+    start_dt: Optional[Union[str, datetime]] = None,
+    end_dt: Optional[Union[str, datetime]] = None,
     manager: Manager = DEFAULT_DB_MANAGER,
 ) -> Optional[pd.DataFrame]:
     """Easily query the configured database.
@@ -95,16 +97,29 @@ def get_data(
     Parameters
     ----------
     funds : `str` or `list`
+    start_dt : str or datetime
+        string must be in YYYY-MM-DD format
+    end_dt : str or datetime
+        string must be in YYYY-MM-DD format
     manager : Manager
         loaded instance of database manager
     """
     if isinstance(funds, str):
         funds = [funds]
 
-    cursor = manager.collection.find({"fund_cnpj": {"$in": funds}})
+    search = {}
+    if funds:
+        search["fund_cnpj"] = {"$in": funds}
 
-    return pd.DataFrame(list(cursor))
+    if start_dt or end_dt:
+        search["date"] = {}
+        if start_dt:
+            search["date"]["$gte"] = pd.to_datetime(start_dt)
+        if end_dt:
+            search["date"]["$lte"] = pd.to_datetime(end_dt)
 
+    cursor = list(manager.collection.find(search))
+    if cursor:
+        df = pd.DataFrame(cursor).set_index("date").sort_index().drop("_id", axis=1)
 
-if __name__ == "__main__":
-    pass
+        return df

@@ -59,7 +59,7 @@ class Manager:
     @staticmethod
     def parse_host(host: str) -> str:
         if len(host.split("//")) > 1:
-            # Assumes prefix is present
+            # Prefix is present
             return host
         elif host.endswith("mongodb.net"):
             # Single host resolving to multiple hosts (e.g. Atlas)
@@ -76,9 +76,11 @@ class Manager:
         else:
             self.db = self.client[self.db]
             self.collection = self.db[self.collection]
+            self.collection.create_index("date")
+            self.collection.create_index("fund_cnpj")
             self.collection.create_index(
                 [
-                    ("date", pymongo.ASCENDING),
+                    ("date", pymongo.DESCENDING),
                     ("fund_cnpj", pymongo.ASCENDING),
                 ],
                 unique=True,
