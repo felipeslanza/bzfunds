@@ -19,12 +19,10 @@ sys.path.insert(0, os.path.abspath(__file__ + "/../../../"))
 
 # -- Project information -----------------------------------------------------
 
-import bzfunds
-
 project = "bzfunds"
 copyright = "2022, fsl"
 author = "fsl"
-release = bzfunds.__version__
+release = "0.1"
 
 
 # -- General configuration ---------------------------------------------------
