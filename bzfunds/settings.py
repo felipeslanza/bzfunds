@@ -8,7 +8,6 @@ environment variables for convenience (but can be altered directly
 as well).
 """
 
-import logging
 import os
 
 

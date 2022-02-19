@@ -15,7 +15,6 @@ daily funds database_.
 """
 
 import glob
-import logging
 import os
 import shutil
 from datetime import datetime
@@ -34,9 +33,6 @@ from .utils import get_url_from_date, parse_csv
 
 
 __all__ = ("get_monthly_data", "get_history")
-
-
-logger = logging.getLogger(__name__)
 
 
 # Globals
@@ -183,7 +179,7 @@ def get_history(
         for date in post_dates
     )
 
-    # List should be empty when `commit=True`
+    # List will be empty when `commit=True`
     df_list = [df for df in (*pre_queue, *post_queue) if df is not None]
     if df_list:
         df = pd.concat(df_list, axis=0).sort_index()

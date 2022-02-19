@@ -58,7 +58,7 @@ def download_data(
     update_only : `bool`
         if True, will use the last available date in `manager` as the starting
         query date (this is not a `diff` against the database!)
-    manager : Manager
+    manager : `Manager`
         loaded instance of database manager
     """
     if not (start_year or update_only):
@@ -103,11 +103,11 @@ def get_data(
     Parameters
     ----------
     funds : `str` or `list`
-    start_dt : str or datetime
+    start_dt : `str` or `datetime`
         string must be in YYYY-MM-DD format
-    end_dt : str or datetime
+    end_dt : `str` or `datetime`
         string must be in YYYY-MM-DD format
-    manager : Manager
+    manager : `Manager`
         loaded instance of database manager
     """
     if isinstance(funds, str):
